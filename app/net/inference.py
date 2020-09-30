@@ -14,10 +14,12 @@ from detectron2.data import MetadataCatalog
 from detectron2.engine import DefaultTrainer
 from detectron2.config import get_cfg
 from detectron2.utils.visualizer import ColorMode
+from pycocotools import mask
+from skimage import measure
 from datetime import datetime
 import os
 
-# from app.net.config_net import predictor
+from app.net.config_net import RESIZE, device
 
 def compute_resize_scale(image_shape, min_side=800, max_side=1333):
     """ Compute an image scale such that the image size is constrained to min_side and max_side.
@@ -59,35 +61,135 @@ def resize_image(img, min_side=800, max_side=1333):
     return img, scale
 
 
+def predict_from_img(predictor, img):
+    print("Detecting START")
 
-topk = 5000
-setup_logger()
-
-cfg = get_cfg()
-cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
-cfg.DATALOADER.NUM_WORKERS = 16
-cfg.MODEL.WEIGHTS = "models/model_v1.0.pth"
-cfg.SOLVER.IMS_PER_BATCH = 8
-cfg.SOLVER.BASE_LR = 0.00025
-cfg.SOLVER.MAX_ITER = 500
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 
-cfg.MODEL.RPN.PRE_NMS_TOPK_TEST = topk
-cfg.MODEL.RPN.POST_NMS_TOPK_TEST = topk
-cfg.TEST.DETECTIONS_PER_IMAGE = topk
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-cfg.MODEL.DEVICE = device
-
-predictor = DefaultPredictor(cfg)
-
-def predict_from_img(img):
-    print("PREDICT")
     im = cv2.imread(img)
-    # if args.resize:
-    #     im, scale = resize_image(im)
-    # print(f"detecting {img}")
-    # start = datetime.now()
-    outputs = predictor(im)
-    print("PREDICT END")
-    return outputs
+    if RESIZE:
+        im, scale = resize_image(im)
+    print(f"detecting {img}")
+
+    outputs: Instances = predictor(im)["instances"]
+
+    annotation = create_coco_annotation(outputs)
+    print("Detecting END")
+    return annotation
+
+
+def get_ground_truth_area(ground_truth_binary_mask):
+    """
+    Args
+        bitmask: A bitmask obtained from the predictions of the model. 
+    Returns
+        Segmentation area  
+    """
+    fortran_ground_truth_binary_mask = np.asfortranarray(ground_truth_binary_mask)
+    encoded_ground_truth = mask.encode(fortran_ground_truth_binary_mask)
+    ground_truth_area = mask.area(encoded_ground_truth)
+    return ground_truth_area
+
+
+def get_segmentation_from_bitmask(bitmask):
+    """ Getting a list of segmentation in polygon format
+    Args
+        bitmask: A bitmask obtained from the predictions of the model. 
+    Returns
+        List of segmentation.
+    """
+
+    contours = measure.find_contours(bitmask, 0.5)
+    seg = []
+    for contour in contours:
+        contour = np.flip(contour, axis=1)
+        segmentation = contour.ravel().tolist()
+        seg.append(segmentation)
+    return seg
+
+
+def create_coco_annotation(outputs_prediction):
+    """ Returns the COCO annotation from the model prediction.
+    Args
+        outputs_prediction: Prediction of model.
+    Returns
+        Dict COCO annotation.
+    """
+
+    image_height = outputs_prediction.image_size[0]
+    image_width = outputs_prediction.image_size[1]
+
+    boxes = (
+            outputs_prediction
+            .get_fields()["pred_boxes"]
+            .tensor.to(device)
+            .numpy()
+        )
+
+    # categories = (
+    #         outputs_prediction
+    #         .get_fields()["pred_classes"]
+    #         .to(device)
+    #         .numpy()
+    #     )
+
+    masks = (
+            outputs_prediction
+            .get_fields()["pred_masks"]
+            .to(device)
+            .numpy()
+        )
+    
+    annotation = {}
+    annotation['info'] = {
+        "description": None,
+        "url": None,
+        "version": None,
+        "year": datetime.today().year,
+        "contributor": None,
+        "date_created": '{date:%Y-%m-%d %H:%M:%S}'.format(date=datetime.now()) }
+    
+    annotation["licenses"] = [
+            {
+                "url": None,
+                "id": 0,
+                "name": None
+            }
+        ]
+    
+    annotation["images"] = [
+            {
+                "license": 0,
+                "url": None,
+                "file_name": "ALERT",
+                "height": image_height,
+                "width": image_width,
+                "date_captured": None,
+                "id": 0
+            }
+        ]
+
+    annotation["annotations"] = []
+
+    for i, box in enumerate(boxes):
+        data = {}
+        data["id"] = i 
+        data["image_id"] = 0
+        data["category_id"] = 1
+        data["segmentation"] = get_segmentation_from_bitmask(mask[i])
+        data["area"] = get_ground_truth_area(masks[i])
+        data["iscrowd"] = 0
+        annotation["annotations"].append(data)
+    
+    annotation["categories"] = [
+        {
+            "supercategory": None,
+            "id": 0,
+            "name": "_background_"
+        },
+        {
+            "supercategory": None,
+            "id": 1,
+            "name": "sunflower_seed"
+        }
+    ]
+
+    return annotation

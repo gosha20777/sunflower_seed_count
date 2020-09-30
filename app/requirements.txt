@@ -4,3 +4,5 @@ python-multipart
 redis==3.5.3
 rq==1.5.2
 numpy==1.18.1
+dill
+scikit-image

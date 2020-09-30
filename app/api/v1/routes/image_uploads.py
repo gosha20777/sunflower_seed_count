@@ -22,13 +22,14 @@ from redis import Redis
 from rq import Queue, Worker
 from rq.job import Job
 import rq
-# from config import REDIS_HOST
+import requests
+import dill
 
 from app.core.config import REDIS_HOST, STORAGE_PATH
 
 
 resdis_connection = Redis(host=REDIS_HOST, port=6379, db=0)
-queue = Queue('queue_test', connection=resdis_connection)
+queue = Queue('queue_test', connection=resdis_connection,  serializer=dill)
 
 base_dir = os.path.relpath(os.path.dirname(__file__ + "/../../../../../" ))
 storage_path = STORAGE_PATH
@@ -58,9 +59,9 @@ async def upload_image_from_local(qeue_name: str, file: UploadFile = File(...)):
     content = await file.read()
     np_content = np.frombuffer(content, dtype=np.uint8)
     path_save = os.path.join(folder_storage, file.filename)
-    np.save(path_save, np_content)
-    # with open(path_save, "wb+") as f:
-    #     f.write(content)
+    # np.save(path_save, np_content)
+    with open(path_save, "wb+") as f:
+        f.write(content)
 
     job = queue.enqueue(
             worker.run_task,
@@ -74,14 +75,19 @@ async def upload_image_from_local(qeue_name: str, file: UploadFile = File(...)):
 
 @router.post("/{qeue_name}/push/url/")
 def upload_image_from_url(url_images: UrlImages):
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+
+@router.post("/{qeue_name}/push/fs/")
+def upload_image_from_fs(fs: FSImages):
     pass
 
 @router.get("/{queue_name}/pop/{task_id}")
 def get_im(task_id: str):
     try:     
-        print("JOB_ID", task_id)
-        job = Job.fetch(task_id, connection=resdis_connection)
-        print(job.get_status())
+        # print("JOB_ID", task_id)
+        job = Job.fetch(task_id, connection=resdis_connection, serializer=dill)
+        print("Job_result", job.result)
         if job.result is None:
             return {'status': job.get_status()}
         out = job.result
@@ -93,77 +99,3 @@ def get_im(task_id: str):
         return { 'error': ex }
 
 
-@router.post("/{qeue_name}/push/fs/")
-def upload_image_from_fs(fs: FSImages):
-    pass
-
-
-# @router.get(
-#     "/{username}",
-#     response_model=ProfileInResponse,
-#     name="profiles:get-profile",
-# )
-# async def retrieve_profile_by_username(
-#     profile: Profile = Depends(get_profile_by_username_from_path),
-# ) -> ProfileInResponse:
-#     return ProfileInResponse(profile=profile)
-
-
-# @router.post(
-#     "/{username}/follow",
-#     response_model=ProfileInResponse,
-#     name="profiles:follow-user",
-# )
-# async def follow_for_user(
-#     profile: Profile = Depends(get_profile_by_username_from_path),
-#     user: User = Depends(get_current_user_authorizer()),
-#     profiles_repo: ProfilesRepository = Depends(get_repository(ProfilesRepository)),
-# ) -> ProfileInResponse:
-#     if user.username == profile.username:
-#         raise HTTPException(
-#             status_code=HTTP_400_BAD_REQUEST,
-#             detail=strings.UNABLE_TO_FOLLOW_YOURSELF,
-#         )
-
-#     if profile.following:
-#         raise HTTPException(
-#             status_code=HTTP_400_BAD_REQUEST,
-#             detail=strings.USER_IS_ALREADY_FOLLOWED,
-#         )
-
-#     await profiles_repo.add_user_into_followers(
-#         target_user=profile,
-#         requested_user=user,
-#     )
-
-#     return ProfileInResponse(profile=profile.copy(update={"following": True}))
-
-
-# @router.delete(
-#     "/{username}/follow",
-#     response_model=ProfileInResponse,
-#     name="profiles:unsubscribe-from-user",
-# )
-# async def unsubscribe_from_user(
-#     profile: Profile = Depends(get_profile_by_username_from_path),
-#     user: User = Depends(get_current_user_authorizer()),
-#     profiles_repo: ProfilesRepository = Depends(get_repository(ProfilesRepository)),
-# ) -> ProfileInResponse:
-#     if user.username == profile.username:
-#         raise HTTPException(
-#             status_code=HTTP_400_BAD_REQUEST,
-#             detail=strings.UNABLE_TO_UNSUBSCRIBE_FROM_YOURSELF,
-#         )
-
-#     if not profile.following:
-#         raise HTTPException(
-#             status_code=HTTP_400_BAD_REQUEST,
-#             detail=strings.USER_IS_NOT_FOLLOWED,
-#         )
-
-#     await profiles_repo.remove_user_from_followers(
-#         target_user=profile,
-#         requested_user=user,
-#     )
-
-#     return ProfileInResponse(profile=profile.copy(update={"following": False}))

@@ -4,7 +4,8 @@ from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 import torch
 
-topk = 5000
+TOPK = 5000
+RESIZE = True
 setup_logger()
 
 cfg = get_cfg()
@@ -16,11 +17,11 @@ cfg.SOLVER.BASE_LR = 0.00025
 cfg.SOLVER.MAX_ITER = 500
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 
-cfg.MODEL.RPN.PRE_NMS_TOPK_TEST = topk
-cfg.MODEL.RPN.POST_NMS_TOPK_TEST = topk
-cfg.TEST.DETECTIONS_PER_IMAGE = topk
+cfg.MODEL.RPN.PRE_NMS_TOPK_TEST = TOPK
+cfg.MODEL.RPN.POST_NMS_TOPK_TEST = TOPK
+cfg.TEST.DETECTIONS_PER_IMAGE = TOPK
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 cfg.MODEL.DEVICE = device
 
-predictor = DefaultPredictor(cfg)
+PREDICTOR: DefaultPredictor = DefaultPredictor(cfg)
