@@ -450,3 +450,9 @@ ASALocalRun/
 # Fody files
 *.xsd
 compute_overlap.c
+
+
+# ML API ignore
+*.pth
+storage/
+redis/
