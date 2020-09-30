@@ -21,6 +21,7 @@ services:
     container_name: worker01
     volumes:
       - ../storage/:/app/storage/
+      - ../../models/:/app/models/
     depends_on:
       - server
       - redis
