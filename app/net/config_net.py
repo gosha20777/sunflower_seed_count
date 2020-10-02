@@ -9,14 +9,15 @@ RESIZE = True
 setup_logger()
 
 cfg = get_cfg()
-cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
+cfg.merge_from_file(model_zoo.get_config_file(
+    "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
 cfg.DATALOADER.NUM_WORKERS = 16
 cfg.MODEL.WEIGHTS = "models/model_v1.0.pth"
 cfg.SOLVER.IMS_PER_BATCH = 8
 cfg.SOLVER.BASE_LR = 0.00025
 cfg.SOLVER.MAX_ITER = 500
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
 cfg.MODEL.RPN.PRE_NMS_TOPK_TEST = TOPK
 cfg.MODEL.RPN.POST_NMS_TOPK_TEST = TOPK
 cfg.TEST.DETECTIONS_PER_IMAGE = TOPK

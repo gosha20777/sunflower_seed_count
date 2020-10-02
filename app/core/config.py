@@ -1,12 +1,9 @@
 # import logging
 # import sys
 from typing import List
-
-# from databases import DatabaseURL
 # from loguru import logger
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings, Secret
-
 # from app.core.logging import InterceptHandler
 
 API_PREFIX = "/api/v1"
@@ -18,11 +15,13 @@ config = Config(".env")
 
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
 
-# DATABASE_URL: DatabaseURL = config("DB_CONNECTION", cast=DatabaseURL)
-# MAX_CONNECTIONS_COUNT: int = config("MAX_CONNECTIONS_COUNT", cast=int, default=10)
-# MIN_CONNECTIONS_COUNT: int = config("MIN_CONNECTIONS_COUNT", cast=int, default=10)
-REDIS_HOST = "redis"
+REDIS_HOST: str = config("REDIS_HOST", default="redis")
+REDIS_PORT: int = config("REDIS_PORT", cast=int, default=6379)
+REDIS_DB: int = config("REDIS_DB", cast=int, default=0)
+RQ_QUEUES = "queue_test" 
+
 STORAGE_PATH = "storage"
+
 # SECRET_KEY: Secret = config("SECRET_KEY", cast=Secret)
 
 PROJECT_NAME: str = config("PROJECT_NAME", default="App for segmentation sunflower's seed on images")
