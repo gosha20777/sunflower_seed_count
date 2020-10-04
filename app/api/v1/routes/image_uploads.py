@@ -2,21 +2,6 @@
 # from starlette.status import HTTP_400_BAD_REQUEST
 # from fastapi.encoders import jsonable_encoder
 # from fastapi.responses import JSONResponse
-
-# from app.api.dependencies.authentication import get_current_user_authorizer
-# from app.api.dependencies.database import get_repository
-# from app.api.dependencies.profiles import get_profile_by_username_from_path
-# from app.db.repositories.profiles import ProfilesRepository
-# from app.models.domain.profiles import Profile
-# from app.models.domain.users import User
-# from app.models.schemas.profiles import ProfileInResponse
-# from app.resources import strings
-
-# from PIL import Image
-
-
-
-# import io
 import os
 import json
 from urllib.parse import urlparse
@@ -35,16 +20,26 @@ import dill
 
 from app.core.config import REDIS_HOST, REDIS_PORT, REDIS_DB, RQ_QUEUES, STORAGE_PATH
 
-
+from rq import use_connection
 resdis_connection = Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-queue = Queue(RQ_QUEUES, connection=resdis_connection, serializer=dill)
-
+use_connection(resdis_connection)
+# queue = Queue(RQ_QUEUES, connection=resdis_connection, serializer=dill)
 
 # Folder storage path
 base_dir = os.path.relpath(os.path.dirname(__file__ + "/../../../../../"))
 storage_path = STORAGE_PATH
 folder_storage = os.path.join(base_dir, storage_path)
 
+with open(os.path.join(base_dir, "app/core/config.json")) as config_file:
+    models_conf = json.load(config_file)
+
+# Загрузить информацию о всех очередях 
+rq_queues = {}
+for model in models_conf.keys():
+    queue_name = models_conf[model]['queue_name']
+    rq_queues[queue_name] = Queue(queue_name, serializer=dill)
+
+# print(rq_queues)
 # uppath = lambda _path, n: os.sep.join(_path.split(os.sep)[:-n])
 # print(uppath(__file__, 4))
 
@@ -77,24 +72,30 @@ def save_image_in_npy(content, filename):
     return path_save
 
 
-@router.post("/{qeue_name}/push/image/")
-async def upload_image_from_local(qeue_name: str, file: UploadFile = File(...)):
+@router.post("/{queue_name}/push/image/")
+async def upload_image_from_local(queue_name, file: UploadFile = File(...)):
+
+    if queue_name not in rq_queues.keys():
+        raise HTTPException(status_code=404, detail="This queue not found")
+
     content = await file.read()
 
     path_save = save_image_in_npy(content, file.filename)
 
-    job = queue.enqueue(
+    job = rq_queues[queue_name].enqueue(
         worker.run_task,
-        qeue_name,
-        path_save,
-        job_id='my_job_id'
+        path_save
     )
 
     return {"job_id": job.id}
 
 
-@router.post("/{qeue_name}/push/url/")
-def upload_image_from_url(url_images: UrlImages):
+@router.post("/{queue_name}/push/url/")
+def upload_image_from_url(queue_name: str, url_images: UrlImages):
+
+    if queue_name not in rq_queues.keys():
+        raise HTTPException(status_code=404, detail="This queue not found")
+
     url = url_images.url
     content = requests.get(url).content
 
@@ -102,19 +103,21 @@ def upload_image_from_url(url_images: UrlImages):
     filename = os.path.basename(url.path)
 
     path_save = save_image_in_npy(content, filename)
-
+    
     job = queue.enqueue(
         worker.run_task,
-        qeue_name,
-        path_save,
-        job_id='my_job_id'
+        path_save
     )
 
     return {"job_id": job.id}
 
 
-@router.post("/{qeue_name}/push/fs/")
-def upload_image_from_fs(fs: FSImages):
+@router.post("/{queue_name}/push/fs/")
+def upload_image_from_fs(queue_name: str, fs: FSImages):
+
+    if queue_name not in rq_queues.keys():
+        raise HTTPException(status_code=404, detail="This queue not found")
+
     fs_path = fs.fs_path
 
     with open(fs_path, 'rb') as f:
@@ -126,10 +129,8 @@ def upload_image_from_fs(fs: FSImages):
 
     job = queue.enqueue(
         worker.run_task,
-        qeue_name,
-        path_save,
-        job_id='my_job_id'
-    )
+        path_save
+        )
 
     return {"job_id": job.id}
 

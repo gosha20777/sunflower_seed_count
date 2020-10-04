@@ -1,0 +1,13 @@
+{
+        "model_segmentation": {
+            "top_k": 5000,
+            "image_size": [800, 1333],
+            "queue_name": "queue_test"
+        },
+        
+        "model_segmentation_b": {
+            "top_k": 5000,
+            "image_size": [800, 1333],
+            "queue_name": "queue_test_b"
+        }
+}

@@ -1,17 +1,21 @@
 # import logging
 # import sys
+import os
 from typing import List
 # from loguru import logger
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings, Secret
-# from app.core.logging import InterceptHandler
 
 API_PREFIX = "/api/v1"
 
 # JWT_TOKEN_PREFIX = "Token"  # noqa: S105
 VERSION = "0.0.0"
 
-config = Config(".env")
+
+# Folder storage path
+base_dir = os.path.relpath(os.path.dirname(__file__))
+env_path = os.path.join(base_dir, ".env")
+config = Config(env_path)
 
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
 

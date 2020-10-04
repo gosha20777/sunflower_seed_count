@@ -13,9 +13,7 @@
 # curl -d '{"url":"value1"}' -H "Content-Type: application/json" -X POST
 # http://localhost:8000/qeue_name/push/url/
 
-# curl -X POST -H "Content-Type: multipart/form-data" -F
-# "file=@20190731_092735.jpg"
-# http://localhost:8000/api/v1/qeue_name/push/image/
+# curl -X POST -H "Content-Type: multipart/form-data" -F "file=@20190731_092735.jpg" http://localhost:8000/api/v1/qeue_name/push/image/
 
 import os
 import cv2
@@ -48,13 +46,6 @@ app = FastAPI()
 
 @app.get("/")
 async def read_root():
-    
-    with open('core/config.json') as config_file:
-        models_conf = json.load(config_file)
-    
-    for model in models_conf.keys():
-        print(models_conf[model]['queue_name'])
-
     return {"Hello": "World"}
 
 folder_storage = "./"
@@ -106,14 +97,3 @@ def upload_image_from_fs(fs: FSImages):
 
     return {"status": 200}
 
-# @router.post("/items/{item_id}")
-# async def create_item(item_id: int, item: Item):
-#     return {"item_id": item_id, **item.dict()}
-
-# @router.post("/items/{item_id}")
-# async def create_item(item_id: int):
-#     return {"item_id": item_id}
-
-# @router.get("/items/")
-# async def create_item():
-#     return {"item_id": "item_id"}
