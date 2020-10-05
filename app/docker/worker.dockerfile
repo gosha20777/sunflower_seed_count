@@ -11,4 +11,4 @@ RUN apt update && apt install -y build-essential libgl1-mesa-glx libgtk2.0-dev &
 
 
 COPY . app/
-CMD rq worker --url redis://redis:6379 queue_test
+CMD rq worker --url redis://redis:6379 queue_sunflower

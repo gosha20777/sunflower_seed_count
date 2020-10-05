@@ -12,7 +12,7 @@ cfg = get_cfg()
 cfg.merge_from_file(model_zoo.get_config_file(
     "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
 cfg.DATALOADER.NUM_WORKERS = 16
-cfg.MODEL.WEIGHTS = "models/model_v1.0.pth"
+cfg.MODEL.WEIGHTS = "snapshots/model_v1.0.pth"
 cfg.SOLVER.IMS_PER_BATCH = 8
 cfg.SOLVER.BASE_LR = 0.00025
 cfg.SOLVER.MAX_ITER = 500
