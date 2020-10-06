@@ -13,7 +13,7 @@
 # curl -d '{"url":"value1"}' -H "Content-Type: application/json" -X POST
 # http://localhost:8000/qeue_name/push/url/
 
-# curl -X POST -H "Content-Type: multipart/form-data" -F "file=@20190731_092735.jpg" http://localhost:8000/api/v1/qeue_name/push/image/
+# curl -X POST -H "Content-Type: multipart/form-data" -F "file=@20190731_092735.jpg" http://localhost:5000/api/v1/qeue_name/push/image/
 
 import os
 import cv2
@@ -57,17 +57,21 @@ def save_image_in_npy(content, filename):
     return path_save
 
 
-@app.post("/{qeue_name}/push/image/")
+@app.post("/api/v1/{qeue_name}/push/image/")
 async def upload_image_from_local(file: UploadFile = File(...)):
     content = await file.read()
-    save_image(content, file.filename)
-    path_save = os.path.join(folder_storage, file.filename)
+    path_save = save_image_in_npy(content, file.filename)
+    filename = file.filename
+    # path_save = os.path.join(folder_storage, filename)
     # cv2.imwrite("cv2" + file.filename, decoded)
+
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        return {"status": "NOT CORRECT ext."}
 
     return {"status": 200}
 
 
-@app.post("/{qeue_name}/push/url/")
+@app.post("/api/v1/{qeue_name}/push/url/")
 def upload_image_from_url(url_images: UrlImages):
     url = url_images.url
     content = requests.get(url).content
@@ -82,7 +86,7 @@ def upload_image_from_url(url_images: UrlImages):
     return {"job": filename}
 
 
-@app.post("/{qeue_name}/push/fs/")
+@app.post("/api/v1/{qeue_name}/push/fs/")
 def upload_image_from_fs(fs: FSImages):
     fs_path = fs.fs
 
