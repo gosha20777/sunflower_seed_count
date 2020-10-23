@@ -115,8 +115,8 @@ def upload_image_from_url(queue_name: str, url_images: UrlImages):
 
     url = urlparse(url)
     filename = os.path.basename(url.path)
-
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+    
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
         raise HTTPException(
             status_code=400,
             detail="Invalid image format. Must be .jpg, .jpeg, .png, or .BMP format.")
@@ -151,7 +151,7 @@ def upload_image_from_fs(queue_name: str, fs: FSImages):
 
     filename = os.path.basename(fs_path)
 
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
         raise HTTPException(
             status_code=400,
             detail="Invalid image format. Must be .jpg, .jpeg, .png, or .BMP format.")
