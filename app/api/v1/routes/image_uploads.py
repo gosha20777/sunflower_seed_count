@@ -123,7 +123,7 @@ def upload_image_from_url(queue_name: str, url_images: UrlImages):
 
     path_save = save_image_in_npy(content, filename)
 
-    job = queue.enqueue(
+    job = rq_queues[queue_name].enqueue(
         worker.run_task,
         path_save
     )
@@ -158,7 +158,7 @@ def upload_image_from_fs(queue_name: str, fs: FSImages):
 
     path_save = save_image_in_npy(content, filename)
 
-    job = queue.enqueue(
+    job = rq_queues[queue_name].enqueue(
         worker.run_task,
         path_save
     )
